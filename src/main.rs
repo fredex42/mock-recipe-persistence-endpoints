@@ -1,7 +1,7 @@
 use std::{error::Error, sync::Arc};
 use handlers::SharedState;
 use tokio::sync::RwLock;
-use axum::{extract::Request, middleware::{self, Next}, response::Response, routing::get, Extension, Router};
+use axum::{extract::Request, middleware::{self, Next}, response::Response, routing::{get, put, delete}, Extension, Router};
 use clap::Parser;
 use fixture::MutableStaticData;
 use log;
@@ -62,6 +62,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = Router::new()
         .route("/collections", get(handlers::get_user_collections))
         .route("/collection/{collection_id}/contents", get(handlers::get_collection_content))
+        .route("/collection/{collection_id}/contents", put(handlers::put_to_collection))
+        .route("/collection/{collection_id}/contents", delete(handlers::delete_from_collection))
         .fallback(handlers::generic404)
         .layer(middleware::from_fn(logging_middleware))
         .layer(Extension(server_state));

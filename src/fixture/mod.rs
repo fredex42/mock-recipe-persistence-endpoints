@@ -72,6 +72,7 @@ const ProdRecipesCookedSample:[&str; 5] = [
     "9a6b1e956f774667ad7562d6410ab73e"
 ];
 
+#[derive(Debug)]
 pub struct MutableStaticData {
     pub env: Environment,
     pub collections:HashMap<String, Vec<String>>,
