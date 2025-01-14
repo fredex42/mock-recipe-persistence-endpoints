@@ -1,9 +1,10 @@
 use std::error::Error;
-use axum::{body::Body, extract::Request, middleware::{self, Next}, response::Response, Router};
+use axum::{body::Body, extract::Request, middleware::{self, Next}, response::Response, routing::get, Router};
 use clap::Parser;
 use log;
 use tokio::net::TcpListener;
 mod handlers;
+mod fixture;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
@@ -47,6 +48,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let app = Router::new()
+        .route("/collections", get(handlers::get_user_collections))
         .fallback(handlers::generic404)
         .layer(middleware::from_fn(logging_middleware));
 
