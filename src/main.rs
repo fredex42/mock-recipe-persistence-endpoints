@@ -1,10 +1,13 @@
-use std::error::Error;
-use axum::{body::Body, extract::Request, middleware::{self, Next}, response::Response, routing::get, Router};
+use std::{error::Error, sync::{Arc, RwLock}};
+use axum::{body::Body, extract::Request, middleware::{self, Next}, response::Response, routing::get, Extension, Router};
 use clap::Parser;
+use fixture::MutableStaticData;
 use log;
 use tokio::net::TcpListener;
 mod handlers;
 mod fixture;
+
+type SharedState = Arc<RwLock<MutableStaticData>>;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
@@ -13,6 +16,9 @@ struct Args {
     #[arg(short, long, default_value_t=9000)]
     port: u16,
 
+    /// Return IDs useful in this data environment
+    #[arg(short, long, default_value_t=fixture::Environment::PROD)]
+    env: fixture::Environment,
 }
 
 async fn logging_middleware(
@@ -47,10 +53,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Args::parse();
 
+    let server_state:SharedState = Arc::new(
+        RwLock::new(
+            MutableStaticData::new(args.env)
+        )
+    );
+
     let app = Router::new()
         .route("/collections", get(handlers::get_user_collections))
         .fallback(handlers::generic404)
-        .layer(middleware::from_fn(logging_middleware));
+        .layer(middleware::from_fn(logging_middleware))
+        .layer(Extension(server_state));
 
     let bind_addr = format!("0.0.0.0:{}", args.port);
 
