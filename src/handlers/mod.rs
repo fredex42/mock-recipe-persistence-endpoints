@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, ops::{Deref, DerefMut}, sync::Arc};
 use axum::http;
-use axum::{extract::{Path, Query, Request}, http::StatusCode, response::IntoResponse, Extension, Json};
+use axum::{extract::{Path, Query}, http::StatusCode, response::IntoResponse, Extension, Json};
 mod responses;
 use responses::{CollectionContentResponse, GenericResponse};
 use tokio::sync::RwLock;
@@ -185,7 +185,7 @@ mod test {
         let state = Arc::new(
             RwLock::new(
                 MutableStaticData{
-                    env: Environment::CODE,
+                    _env: Environment::CODE,
                     collections: fixture
                 }
             )
@@ -220,7 +220,7 @@ mod test {
         let state = Arc::new(
             RwLock::new(
                 MutableStaticData{
-                    env: Environment::CODE,
+                    _env: Environment::CODE,
                     collections: fixture
                 }
             )
