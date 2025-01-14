@@ -73,12 +73,12 @@ const ProdRecipesCookedSample:[&str; 5] = [
 ];
 
 pub struct MutableStaticData {
-    env: Environment,
-    collections:HashMap<String, Vec<String>>,
+    pub env: Environment,
+    pub collections:HashMap<String, Vec<String>>,
 }
 
 impl MutableStaticData {
-    pub fn new(env:Environment) -> MutableStaticData {
+    pub fn new(env:&Environment) -> MutableStaticData {
         match env {
             Environment::CODE=>{
                 let mut collections:HashMap<String, Vec<String>> = HashMap::new();
@@ -89,7 +89,7 @@ impl MutableStaticData {
                 collections.insert("22468120-81C4-4E4A-8B9D-71AEE5E25C40".into(), cooked);
 
                 MutableStaticData{
-                    env: env,
+                    env: env.clone(),
                     collections: collections,
                 }
             }
@@ -101,7 +101,7 @@ impl MutableStaticData {
                 collections.insert("22468120-81C4-4E4A-8B9D-71AEE5E25C40".into(), cooked);
 
                 MutableStaticData{
-                    env: env,
+                    env: env.clone(),
                     collections: collections,
                 }
             }

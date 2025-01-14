@@ -1,20 +1,4 @@
 use serde::{Deserialize, Serialize};
-// use chrono::{serde::ts_milliseconds, TimeZone};
-// use chrono::TimeZone::UTC;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum ContentKind {
-    Recipe,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CollectionContentResponse {
-    pub content:Vec<String>,
-    #[serde(rename="contentType")]
-    pub content_type: ContentKind,
-    #[serde(rename="lastModified")]
-    pub last_modified:Option<time::OffsetDateTime>   //also in header
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum CollectionKind {
@@ -27,6 +11,7 @@ pub enum CollectionKind {
     #[serde(rename="userCreated")]
     UserCreated
 }
+
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CollectionResponse {

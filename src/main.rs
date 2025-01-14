@@ -1,13 +1,13 @@
-use std::{error::Error, sync::{Arc, RwLock}};
-use axum::{body::Body, extract::Request, middleware::{self, Next}, response::Response, routing::get, Extension, Router};
+use std::{error::Error, sync::Arc};
+use handlers::SharedState;
+use tokio::sync::RwLock;
+use axum::{extract::Request, middleware::{self, Next}, response::Response, routing::get, Extension, Router};
 use clap::Parser;
 use fixture::MutableStaticData;
 use log;
 use tokio::net::TcpListener;
 mod handlers;
 mod fixture;
-
-type SharedState = Arc<RwLock<MutableStaticData>>;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
@@ -55,12 +55,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let server_state:SharedState = Arc::new(
         RwLock::new(
-            MutableStaticData::new(args.env)
+            MutableStaticData::new(&args.env)
         )
     );
 
     let app = Router::new()
         .route("/collections", get(handlers::get_user_collections))
+        .route("/collection/{collection_id}/contents", get(handlers::get_collection_content))
         .fallback(handlers::generic404)
         .layer(middleware::from_fn(logging_middleware))
         .layer(Extension(server_state));
@@ -68,7 +69,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bind_addr = format!("0.0.0.0:{}", args.port);
 
     let listener = TcpListener::bind(bind_addr).await?;
-    log::info!("Listening for connections on port {}", args.port);
+    log::info!("Listening for connections on port {}. Serving IDs for {:?} environment", args.port, &args.env);
 
     axum::serve(listener, app).await?;
 
