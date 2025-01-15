@@ -29,9 +29,24 @@ pub async fn get_user_collections() -> impl IntoResponse {
     )
 }
 
-///TODO - add limit and offset params
+fn get_offset_limit(params: &HashMap<String, String>) -> (usize, usize) 
+{
+    let limit:usize = match params.get("limit") {
+        None=>100,
+        Some(limit)=>str::parse(limit).unwrap_or(100),
+    };
+
+    let offset:usize = match params.get("offset") {
+        None=>0,
+        Some(offset)=>str::parse(offset).unwrap_or(0),
+    };
+
+    (offset, limit)
+}
+
 /// TODO - add if-modified-since behaviour
 pub async fn get_collection_content(
+    Query(params): Query<HashMap<String, String>>,
     Path(collection_id): Path<String>,
     Extension(shared_state): Extension<SharedState>
 ) -> impl IntoResponse {
@@ -40,6 +55,8 @@ pub async fn get_collection_content(
     let state_ref = shared_state.clone();
     let guarded_data = state_ref.read().await;
     let maybe_collections =  guarded_data.deref().collections.get(collection_id.as_str());
+
+    let (offset, limit) = get_offset_limit(&params);
 
     match maybe_collections {
         None=>(
@@ -53,7 +70,7 @@ pub async fn get_collection_content(
             StatusCode::OK,
             Json(CollectionContentResponse{
                 content_type: responses::ContentKind::Recipe,
-                content: collections.to_owned(),
+                content: collections.iter().skip(offset).take(limit).map(|s| s.to_owned()).collect(),
                 last_modified: Some(now),
             })
         ).into_response()
@@ -174,6 +191,11 @@ pub async fn delete_from_collection(
 }
 
 mod test {
+    use axum::Router;
+    use axum_test::TestServer;
+    use axum::routing::get;
+    use serde_json::Value;
+
     use super::*;
 
     #[tokio::test]
@@ -244,5 +266,71 @@ mod test {
                 Err(format!("Unexpected return value {:?}", e)).into()
             }
         }
+    }
+
+    #[tokio::test]
+    async fn test_get_collection_content_limits() -> Result<(), String> {
+        let mut fixture:HashMap<String, Vec<String>> = HashMap::new();
+        fixture.insert("collection1".into(), vec!["recep1".into(),"recep2".into(),"recep3".into(),"recep4".into()]);
+
+        let state = Arc::new(
+            RwLock::new(
+                MutableStaticData{
+                    _env: Environment::CODE,
+                    collections: fixture
+                }
+            )
+        );
+
+        let mut params:HashMap<String,String> = HashMap::new();
+        params.insert("limit".into(), "2".into());
+        params.insert("offset".into(), "0".into());
+
+        let fake_app = Router::new()
+            .route(&"/collection/{collection_id}/content", get(get_collection_content))
+            .layer(Extension(state));
+
+        let fake_server = TestServer::new(fake_app).unwrap();
+
+        let page_one = fake_server.get("/collection/collection1/content?limit=2&offset=0").await;
+        page_one.assert_status_ok();
+
+        let page_one_data:Value = serde_json::from_str(&page_one.text()).unwrap();
+        let page_one_content = &page_one_data["content"];
+        let content_array:Vec<&str> = page_one_content.as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
+        assert_eq!(content_array.len(), 2);
+        assert_eq!(content_array[0], "recep1");
+        assert_eq!(content_array[1], "recep2"); 
+
+        let page_two = fake_server.get("/collection/collection1/content?limit=2&offset=1").await;
+        page_two.assert_status_ok();
+
+        let page_two_data:Value = serde_json::from_str(&page_two.text()).unwrap();
+        let page_two_content = &page_two_data["content"];
+        let page_two_content_array:Vec<&str> = page_two_content.as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
+        assert_eq!(page_two_content_array.len(), 2);
+        assert_eq!(page_two_content_array[0], "recep2");
+        assert_eq!(page_two_content_array[1], "recep3"); 
+         
+
+        let last_page = fake_server.get("/collection/collection1/content?limit=2&offset=3").await;
+        last_page.assert_status_ok();
+
+        let last_page_data:Value = serde_json::from_str(&last_page.text()).unwrap();
+        let last_page_content = &last_page_data["content"];
+        let last_page_content_array:Vec<&str> = last_page_content.as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
+        assert_eq!(last_page_content_array.len(), 1);
+        assert_eq!(last_page_content_array[0], "recep4");
+
+
+        let empty_page = fake_server.get("/collection/collection1/content?limit=2&offset=56").await;
+        empty_page.assert_status_ok();
+
+        let empty_page_data:Value = serde_json::from_str(&empty_page.text()).unwrap();
+        let empty_page_content = &empty_page_data["content"];
+        let empty_page_content_array:Vec<&str> = empty_page_content.as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
+        assert_eq!(empty_page_content_array.len(), 0);
+
+        Ok( () )
     }
 }
