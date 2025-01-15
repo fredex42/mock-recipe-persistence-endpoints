@@ -786,7 +786,7 @@ dependencies = [
 
 [[package]]
 name = "mock-recipe-persistence-endpoints"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "axum",
  "axum-test",
