@@ -123,14 +123,14 @@ pub async fn put_to_collection(
     Extension(shared_state): Extension<SharedState>,
 ) -> impl IntoResponse {
     //this, too, should be DRYer :shrug:
-    let maybe_id_list:Option<Vec<&str>> = params.get("ids").map(|s| s.split(",").collect());
+    let maybe_id_list:Option<Vec<&str>> = params.get("id").map(|s| s.split(",").collect());
 
     match maybe_id_list {
         None=>(
             StatusCode::BAD_REQUEST,
             Json(GenericResponse{
                 status: "bad_request".into(),
-                detail: Some("you must provide ?ids= to indicate the ids to put".into())
+                detail: Some("you must provide ?id= to indicate the ids to put".into())
             })
         ).into_response(),
         Some(id_list)=>{
@@ -159,14 +159,14 @@ pub async fn delete_from_collection(
     Path(collection_id):Path<String>,
     Extension(shared_state): Extension<SharedState>,
 ) -> impl IntoResponse {
-    let maybe_id_list:Option<Vec<&str>> = params.get("ids").map(|s| s.split(",").collect());
+    let maybe_id_list:Option<Vec<&str>> = params.get("id").map(|s| s.split(",").collect());
 
     match maybe_id_list {
         None=>(
             StatusCode::BAD_REQUEST,
             Json(GenericResponse{
                 status: "bad_request".into(),
-                detail: Some("you must provide ?ids= to indicate the ids to remove".into())
+                detail: Some("you must provide ?id= to indicate the ids to remove".into())
             })
         ).into_response(),
         Some(id_list)=>{
